@@ -93,13 +93,19 @@ commands, so overrides live in the plugin tuple:
   "plugin": [
     [
       "opencode-provider-balance",
-      { "keybind": "ctrl+b", "refreshKeybind": "ctrl+r" }
+      { "keybind": "ctrl+b", "refreshKeybind": "f5" }
     ]
   ]
 }
 ```
 
 Pass `"none"` to disable a binding (e.g. `"keybind": "none"`).
+
+> Warning: avoid keys already used by opencode's built-in keybinds — built-in
+> bindings take precedence over plugin bindings, so the plugin never fires. For
+> example, `ctrl+r` is bound to rename session, `<leader>b` toggles the sidebar,
+> and `<leader>r` redoes. Check the built-in list in opencode's keybinds docs
+> before picking a binding (e.g. `f5` is unbound and works well for refresh).
 
 ## Disable
 
