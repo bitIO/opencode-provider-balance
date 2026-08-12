@@ -14,25 +14,40 @@ const TOGGLE_COMMAND = "balance.toggle";
 const REFRESH_COMMAND = "balance.refresh";
 const SNAPSHOT_PROVIDER_ID = "deepseek";
 
+export type RefreshErrorState = "key-missing" | "fetch-failed" | null;
+
+/**
+ * Pure decision for how a refresh failure should surface in the panel.
+ * key-missing still shows cached balances, so they are flagged stale.
+ */
+export function classifyRefreshError(
+  error: unknown,
+  hasSnapshot: boolean,
+): { error: RefreshErrorState; stale: boolean } {
+  if (error instanceof BalanceKeyMissingError) {
+    return { error: "key-missing", stale: true };
+  }
+  if (error instanceof BalanceFetchError) {
+    return hasSnapshot
+      ? { error: null, stale: true }
+      : { error: "fetch-failed", stale: false };
+  }
+  // Unexpected errors must never crash the refresh loop; log and stay put.
+  console.error("[balance-panel] unexpected refresh error", error);
+  return { error: null, stale: false };
+}
+
 const plugin: TuiPluginModule = {
   id: "balance.panel",
   tui: async (api, options) => {
     const opts = parseOptions(options as Record<string, unknown> | undefined);
-
-    // Defensive: kv may be unavailable on some hosts; the panel falls back to
-    // fetching and keeps state in memory either way.
-    try {
-      await api.kv.ready;
-    } catch {
-      // proceed without kv
-    }
 
     const [visible, setVisible] = createSignal(true);
     const [snapshot, setSnapshot] = createSignal<BalanceSnapshot | undefined>(
       readSnapshot(api.kv, SNAPSHOT_PROVIDER_ID),
     );
     const [stale, setStale] = createSignal(false);
-    const [error, setError] = createSignal<"key-missing" | "fetch-failed" | null>(null);
+    const [error, setError] = createSignal<RefreshErrorState>(null);
 
     let refreshing = false;
     const refresh = async () => {
@@ -51,19 +66,12 @@ const plugin: TuiPluginModule = {
         setError(null);
         setStale(false);
       } catch (err) {
-        if (err instanceof BalanceKeyMissingError) {
-          setError("key-missing");
-          setStale(false);
-        } else if (err instanceof BalanceFetchError) {
-          if (snapshot()) {
-            // Keep showing the cached snapshot; flag it as stale.
-            setStale(true);
-          } else {
-            setError("fetch-failed");
-          }
-        }
-        // Unexpected errors are swallowed on purpose: a refresh failure must
-        // never take the TUI plugin down with it.
+        const { error: nextError, stale: nextStale } = classifyRefreshError(
+          err,
+          snapshot() !== undefined,
+        );
+        setError(nextError);
+        setStale(nextStale);
       } finally {
         refreshing = false;
       }
@@ -74,7 +82,7 @@ const plugin: TuiPluginModule = {
     const timer = setInterval(() => void refresh(), opts.refreshIntervalMs);
     api.lifecycle.onDispose(() => clearInterval(timer));
 
-    api.keymap.registerLayer({
+    const disposeKeymap = api.keymap.registerLayer({
       mode: "base",
       commands: [
         {
@@ -103,6 +111,8 @@ const plugin: TuiPluginModule = {
             },
           ],
     });
+    // The host also auto-tracks keymap disposers; belt-and-suspenders.
+    api.lifecycle.onDispose(disposeKeymap);
 
     // Account-level panel: render for any session.
     api.slots.register({
