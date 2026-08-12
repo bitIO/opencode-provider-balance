@@ -22,6 +22,8 @@ const DEFAULTS = {
   refreshIntervalMs: 900_000,
   fields: "total" as const,
   providers: [] as string[],
+  keybind: null,
+  refreshKeybind: null,
 };
 
 describe("parseOptions", () => {
@@ -102,6 +104,30 @@ describe("parseOptions", () => {
   test("drops non-string array items and rejects other provider types", () => {
     expect(parseOptions({ providers: [42, "deepseek"] }).providers).toEqual(["deepseek"]);
     expect(parseOptions({ providers: 42 }).providers).toEqual([]);
+  });
+
+  test("defaults keybind and refreshKeybind to null", () => {
+    expect(parseOptions({}).keybind).toBeNull();
+    expect(parseOptions({}).refreshKeybind).toBeNull();
+  });
+
+  test("passes keybind strings through trimmed", () => {
+    expect(parseOptions({ keybind: "ctrl+b" }).keybind).toBe("ctrl+b");
+    expect(parseOptions({ keybind: "  <leader>shift+b  " }).keybind).toBe(
+      "<leader>shift+b",
+    );
+  });
+
+  test("treats empty or non-string keybinds as null", () => {
+    expect(parseOptions({ keybind: "" }).keybind).toBeNull();
+    expect(parseOptions({ keybind: "   " }).keybind).toBeNull();
+    expect(parseOptions({ keybind: 42 }).keybind).toBeNull();
+    expect(parseOptions({ refreshKeybind: 42 }).refreshKeybind).toBeNull();
+  });
+
+  test("preserves the literal \"none\" sentinel for keybinds", () => {
+    expect(parseOptions({ keybind: "none" }).keybind).toBe("none");
+    expect(parseOptions({ refreshKeybind: "none" }).refreshKeybind).toBe("none");
   });
 });
 

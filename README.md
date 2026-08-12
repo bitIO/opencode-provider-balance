@@ -63,6 +63,8 @@ array:
 | `refreshIntervalMinutes` | number, optional | `15` (min 1) | How often to re-fetch balances. |
 | `fields` | `"total"` \| `"split"`, optional | `"total"` | Show only totals, or also granted/topped-up breakdown. |
 | `providers` | string[] or string, optional | `[]` | List of provider ids to enable (e.g. `["deepseek"]`); empty = panel hidden. |
+| `keybind` | string, optional | `<leader>shift+b` | Keybind that toggles the panel; `"none"` disables it. |
+| `refreshKeybind` | string, optional | none | Keybind that refreshes balances; `"none"` disables it. |
 
 All options are optional; invalid values fall back to defaults. Threshold
 comparison is strict (`<`); omit `threshold` or set it to `null` to disable
@@ -73,25 +75,44 @@ produce no messages.
 
 ## Toggle and commands
 
-- `balance.toggle` — show/hide the panel. Default binding `<leader>B`
-  (leader, then shift+b). Plain `<leader>b` is opencode's built-in sidebar
-  toggle, so the plugin uses the shifted binding. To use plain `b` instead,
-  disable the built-in toggle and rebind in `tui.json`:
-
-```json
-{
-  "keybinds": {
-    "sidebar_toggle": "none",
-    "balance.toggle": "<leader>b"
-  }
-}
-```
-
+- `balance.toggle` — show/hide the panel. Default binding `<leader>shift+b`
+  (leader, then shift+b; the leader key defaults to `ctrl+x`). Plain
+  `<leader>b` is opencode's built-in sidebar toggle, so the panel toggle uses
+  shift+b and doesn't collide with it.
 - `balance.refresh` — fetch balances now. No default binding; run it from the
   command palette.
 
 Both commands appear in the command palette (`command_list`, default `ctrl+p`).
-The leader key defaults to `ctrl+x`.
+
+Custom keybinds are set via PLUGIN OPTIONS, not `tui.json` keybinds. The host's
+`keybinds` accepts only built-in keybind names and silently ignores plugin
+commands, so overrides live in the plugin tuple:
+
+```json
+{
+  "plugin": [
+    [
+      "opencode-provider-balance",
+      { "keybind": "ctrl+b", "refreshKeybind": "f5" }
+    ]
+  ]
+}
+```
+
+Pass `"none"` to disable a binding (e.g. `"keybind": "none"`).
+
+> Warning: avoid keys already used by opencode's built-in keybinds — built-in
+> bindings take precedence over plugin bindings, so the plugin never fires. For
+> example, `ctrl+r` is bound to rename session, `<leader>b` toggles the sidebar,
+> and `<leader>r` redoes. Check the built-in list in opencode's keybinds docs
+> before picking a binding (e.g. `f5` is unbound and works well for refresh).
+
+## Logs
+
+Refresh outcomes are logged through opencode's app log under `service:
+balance-panel` (info on success, warn/error on failures). Enable the debug
+console with a built-in keybind in `tui.json`, e.g.
+`{ "keybinds": { "app_console": "f9" } }`, then press `f9` to view.
 
 ## Disable
 

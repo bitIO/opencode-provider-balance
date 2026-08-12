@@ -1,7 +1,7 @@
 import type { TuiPluginModule } from "@opencode-ai/plugin/tui";
 import { createSignal } from "solid-js";
 import { readSnapshot, writeSnapshot } from "./cache.js";
-import { parseOptions } from "./config.js";
+import { parseOptions, type NormalizedOptions } from "./config.js";
 import { BalancePanel } from "./panel.jsx";
 import {
   BalanceFetchError,
@@ -20,6 +20,41 @@ export type ProviderStatus = {
   stale: boolean;
   error: RefreshErrorState;
 };
+
+export type CommandBinding = {
+  key: string;
+  cmd: string;
+  desc: string;
+  mode: "base";
+};
+
+/**
+ * Build the keymap bindings for the plugin's commands from normalized options.
+ * null = plugin default; the literal "none" disables the binding. tui.json's
+ * host `keybinds` only accepts built-in keybind names and silently drops
+ * plugin commands, so overrides live in plugin options instead.
+ */
+export function buildCommandBindings(opts: NormalizedOptions): CommandBinding[] {
+  const bindings: CommandBinding[] = [];
+  const toggleKey = opts.keybind === null ? "<leader>shift+b" : opts.keybind;
+  if (toggleKey !== "none") {
+    bindings.push({
+      key: toggleKey,
+      cmd: TOGGLE_COMMAND,
+      desc: "Toggle balance panel",
+      mode: "base",
+    });
+  }
+  if (opts.refreshKeybind !== null && opts.refreshKeybind !== "none") {
+    bindings.push({
+      key: opts.refreshKeybind,
+      cmd: REFRESH_COMMAND,
+      desc: "Refresh balance",
+      mode: "base",
+    });
+  }
+  return bindings;
+}
 
 /**
  * Pure decision for how a refresh failure should surface in the panel.
@@ -65,6 +100,23 @@ const plugin: TuiPluginModule = {
     }
     const [statuses, setStatuses] = createSignal<Record<string, ProviderStatus>>(initialStatuses);
 
+    const log = async (level: "debug" | "info" | "warn" | "error", message: string, extra: Record<string, unknown>) => {
+      // The OpenTUI console overlay (app_console) captures console.* calls, so
+      // that is the channel the user actually sees in the debug console.
+      // app.log is a best-effort server-side side channel and must never break
+      // the refresh loop.
+      if (level === "warn" || level === "error") {
+        console.error("[balance-panel]", level, message, extra);
+      } else {
+        console.log("[balance-panel]", level, message, extra);
+      }
+      try {
+        await api.client?.app?.log?.({ service: "balance-panel", level, message, extra });
+      } catch {
+        // logging must never break the refresh loop
+      }
+    };
+
     let refreshing = false;
     const refresh = async () => {
       if (refreshing) {
@@ -81,22 +133,35 @@ const plugin: TuiPluginModule = {
                 [provider.id]: { snapshot: fresh, stale: false, error: null },
               }));
               writeSnapshot(api.kv, fresh);
-            } catch (err) {
-              setStatuses((prev) => {
-                const prevStatus = prev[provider.id];
-                const { error, stale } = classifyRefreshError(
-                  err,
-                  prevStatus?.snapshot !== undefined,
-                );
-                return {
-                  ...prev,
-                  [provider.id]: {
-                    snapshot: prevStatus?.snapshot,
-                    stale,
-                    error,
-                  },
-                };
+              await log("info", "balance refreshed", {
+                provider: provider.id,
+                balances: fresh.balances.map((b) => `${b.currency}:${b.totalBalance.toFixed(2)}`),
+                fetchedAt: fresh.fetchedAt,
               });
+            } catch (err) {
+              const prevStatus = statuses()[provider.id];
+              const { error, stale } = classifyRefreshError(
+                err,
+                prevStatus?.snapshot !== undefined,
+              );
+              setStatuses((prev) => ({
+                ...prev,
+                [provider.id]: {
+                  snapshot: prevStatus?.snapshot,
+                  stale,
+                  error,
+                },
+              }));
+              const errorDetail = err instanceof Error ? err.message : String(err);
+              if (error === "key-missing") {
+                await log("warn", "API key not configured", { provider: provider.id });
+              } else if (error === "fetch-failed") {
+                await log("error", "balance unavailable", { provider: provider.id, error: errorDetail });
+              } else if (stale) {
+                await log("warn", "balance refresh failed, showing cached", { provider: provider.id, error: errorDetail });
+              } else {
+                await log("error", "unexpected refresh error", { provider: provider.id, error: errorDetail });
+              }
             }
           }),
         );
@@ -106,6 +171,7 @@ const plugin: TuiPluginModule = {
     };
 
     // Initial fetch on session start, then keep polling.
+    await log("info", "balance panel initialized", { providers: providers.map((p) => p.id) });
     void refresh();
     const timer = setInterval(() => void refresh(), opts.refreshIntervalMs);
     api.lifecycle.onDispose(() => clearInterval(timer));
@@ -128,16 +194,7 @@ const plugin: TuiPluginModule = {
           run: () => void refresh(),
         },
       ],
-      bindings: api.tuiConfig.keybinds.has(TOGGLE_COMMAND)
-        ? []
-        : [
-            {
-              key: "<leader>B",
-              cmd: TOGGLE_COMMAND,
-              desc: "Toggle balance panel",
-              mode: "base",
-            },
-          ],
+      bindings: buildCommandBindings(opts),
     });
     // The host also auto-tracks keymap disposers; belt-and-suspenders.
     api.lifecycle.onDispose(disposeKeymap);
