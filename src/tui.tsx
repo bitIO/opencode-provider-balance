@@ -101,8 +101,17 @@ const plugin: TuiPluginModule = {
     const [statuses, setStatuses] = createSignal<Record<string, ProviderStatus>>(initialStatuses);
 
     const log = async (level: "debug" | "info" | "warn" | "error", message: string, extra: Record<string, unknown>) => {
+      // The OpenTUI console overlay (app_console) captures console.* calls, so
+      // that is the channel the user actually sees in the debug console.
+      // app.log is a best-effort server-side side channel and must never break
+      // the refresh loop.
+      if (level === "warn" || level === "error") {
+        console.error("[balance-panel]", level, message, extra);
+      } else {
+        console.log("[balance-panel]", level, message, extra);
+      }
       try {
-        await api.client.app.log({ service: "balance-panel", level, message, extra });
+        await api.client?.app?.log?.({ service: "balance-panel", level, message, extra });
       } catch {
         // logging must never break the refresh loop
       }
