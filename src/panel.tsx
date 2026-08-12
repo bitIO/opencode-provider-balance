@@ -18,6 +18,13 @@ export type BalancePanelProps = {
   visible: boolean;
 };
 
+/** Formats an ISO timestamp as local 24h `HH:MM`; "" when unparseable. */
+function formatTime(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
+
 /**
  * Provider-balance section for opencode's sidebar. Pure presentation: all
  * state arrives via props, nothing is fetched or stored here.
@@ -82,6 +89,11 @@ export function BalancePanel(props: BalancePanelProps): JSX.Element {
                             <Show when={snapshot().balances.length === 0}>
                               <text opacity={0.7}> no balance data</text>
                             </Show>
+                            <text opacity={0.7}>
+                              {formatTime(snapshot().fetchedAt)
+                                ? ` (${formatTime(snapshot().fetchedAt)})`
+                                : ""}
+                            </text>
                           </>
                         )}
                       </Show>
