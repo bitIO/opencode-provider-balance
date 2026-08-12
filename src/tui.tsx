@@ -41,6 +41,7 @@ const plugin: TuiPluginModule = {
   id: "balance.panel",
   tui: async (api, options) => {
     const opts = parseOptions(options as Record<string, unknown> | undefined);
+    const provider = getProviders()[0];
 
     const [visible, setVisible] = createSignal(true);
     const [snapshot, setSnapshot] = createSignal<BalanceSnapshot | undefined>(
@@ -55,7 +56,6 @@ const plugin: TuiPluginModule = {
         return;
       }
       refreshing = true;
-      const provider = getProviders()[0];
       try {
         if (!provider) {
           return;
@@ -124,6 +124,8 @@ const plugin: TuiPluginModule = {
             stale={stale()}
             error={error()}
             visible={visible()}
+            providerName={provider?.name ?? "Unknown"}
+            providerIcon={provider?.icon ?? ""}
           />
         ),
       },

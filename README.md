@@ -2,9 +2,11 @@
 
 An opencode TUI plugin that shows your API-provider balance in the sidebar. It
 fetches balances on session start and re-fetches them on an interval, rendering
-one line per currency with the total balance. The last-known balance is cached
-in opencode's KV store (`state/kv.json`), so it survives restarts and is marked
-`(stale)` when the API is unreachable. A `!` prefix warns when a currency's
+a provider header (icon + name, e.g. 🐋 DeepSeek) with one line per currency
+showing the total balance, plus emoji indicators (💰 for the panel, 🕓 when
+stale, ⚠️ for low-balance warnings). The last-known balance is cached in
+opencode's KV store (`state/kv.json`), so it survives restarts and is marked
+`🕓` when the API is unreachable. A `⚠️` prefix warns when a currency's
 total is below the configured threshold. Optionally, each line can also show the
 granted and topped-up split.
 

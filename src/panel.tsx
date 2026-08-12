@@ -9,6 +9,8 @@ export type BalancePanelProps = {
   stale: boolean;
   error: "key-missing" | "fetch-failed" | null;
   visible: boolean;
+  providerName: string;
+  providerIcon: string;
 };
 
 /**
@@ -28,20 +30,24 @@ export function BalancePanel(props: BalancePanelProps): JSX.Element {
     <Show when={props.visible}>
       <box flexDirection="column">
         <box flexDirection="row">
-          <text>Balance</text>
+          <text>💰 Balance</text>
           <Show when={props.stale}>
-            <text opacity={0.7}> (stale)</text>
+            <text opacity={0.7}> 🕓</text>
           </Show>
         </box>
 
+        <text>
+          {props.providerIcon} {props.providerName}
+        </text>
+
         <Show when={props.error === "key-missing"}>
-          <text>API key not configured</text>
+          <text>🔑 API key not configured</text>
           <text opacity={0.7}>Set DEEPSEEK_API_KEY</text>
         </Show>
 
         <Show when={props.error !== "key-missing" && !props.snapshot}>
           <text opacity={0.7}>
-            {props.error === "fetch-failed" ? "Balance unavailable" : "Loading…"}
+            {props.error === "fetch-failed" ? "⛔ Balance unavailable" : "Loading…"}
           </text>
         </Show>
 
@@ -58,7 +64,7 @@ export function BalancePanel(props: BalancePanelProps): JSX.Element {
                     <box flexDirection="column">
                       <box flexDirection="row">
                         <Show when={isWarning()}>
-                          <text>! </text>
+                          <text>⚠️ </text>
                         </Show>
                         <text>
                           {balance.currency} {balance.totalBalance.toFixed(2)}

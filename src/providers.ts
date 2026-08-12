@@ -29,6 +29,7 @@ export class BalanceFetchError extends Error {
 export interface BalanceProvider {
   readonly id: string;
   readonly name: string;
+  readonly icon: string;
   fetchBalance(): Promise<BalanceSnapshot>;
 }
 
@@ -50,6 +51,7 @@ const DEEPSEEK_API_KEY_ENV = "DEEPSEEK_API_KEY";
 export class DeepSeekProvider implements BalanceProvider {
   readonly id = "deepseek";
   readonly name = "DeepSeek";
+  readonly icon = "🐋";
 
   async fetchBalance(): Promise<BalanceSnapshot> {
     const apiKey = process.env[DEEPSEEK_API_KEY_ENV];
