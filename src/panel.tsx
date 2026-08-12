@@ -50,23 +50,25 @@ export function BalancePanel(props: BalancePanelProps): JSX.Element {
           </Show>
         </box>
 
-        <box flexDirection="row">
-          <text>
-            {props.providerIcon} {props.providerName}
-          </text>
-          <Show when={props.snapshot}>
-            {(snapshot) => (
-              <>
-                <Show when={snapshot().balances.length > 0}>
-                  <text> {row()}</text>
-                </Show>
-                <Show when={snapshot().balances.length === 0}>
-                  <text opacity={0.7}> no balance data</text>
-                </Show>
-              </>
-            )}
-          </Show>
-        </box>
+        <Show when={props.error !== "key-missing"}>
+          <box flexDirection="row">
+            <text>
+              {props.providerIcon} {props.providerName}
+            </text>
+            <Show when={props.snapshot}>
+              {(snapshot) => (
+                <>
+                  <Show when={snapshot().balances.length > 0}>
+                    <text> {row()}</text>
+                  </Show>
+                  <Show when={snapshot().balances.length === 0}>
+                    <text opacity={0.7}> no balance data</text>
+                  </Show>
+                </>
+              )}
+            </Show>
+          </box>
+        </Show>
 
         <Show when={props.error === "key-missing"}>
           <text>🔑 API key not configured</text>

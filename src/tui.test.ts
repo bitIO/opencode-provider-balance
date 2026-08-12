@@ -3,17 +3,17 @@ import { BalanceFetchError, BalanceKeyMissingError } from "./providers.js";
 import { classifyRefreshError } from "./tui.js";
 
 describe("classifyRefreshError", () => {
-  test("key-missing flags cached balances stale (with snapshot)", () => {
+  test("key-missing hides cached balances (with snapshot)", () => {
     expect(classifyRefreshError(new BalanceKeyMissingError("DeepSeek", "DEEPSEEK_API_KEY"), true)).toEqual({
       error: "key-missing",
-      stale: true,
+      stale: false,
     });
   });
 
-  test("key-missing flags stale even without a snapshot", () => {
+  test("key-missing hides balances even without a snapshot", () => {
     expect(classifyRefreshError(new BalanceKeyMissingError("DeepSeek", "DEEPSEEK_API_KEY"), false)).toEqual({
       error: "key-missing",
-      stale: true,
+      stale: false,
     });
   });
 

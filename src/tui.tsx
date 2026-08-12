@@ -18,14 +18,14 @@ export type RefreshErrorState = "key-missing" | "fetch-failed" | null;
 
 /**
  * Pure decision for how a refresh failure should surface in the panel.
- * key-missing still shows cached balances, so they are flagged stale.
+ * key-missing hides all balance display, so nothing is flagged stale.
  */
 export function classifyRefreshError(
   error: unknown,
   hasSnapshot: boolean,
 ): { error: RefreshErrorState; stale: boolean } {
   if (error instanceof BalanceKeyMissingError) {
-    return { error: "key-missing", stale: true };
+    return { error: "key-missing", stale: false };
   }
   if (error instanceof BalanceFetchError) {
     return hasSnapshot
