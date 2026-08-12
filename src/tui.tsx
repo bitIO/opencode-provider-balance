@@ -1,7 +1,7 @@
 import type { TuiPluginModule } from "@opencode-ai/plugin/tui";
 import { createSignal } from "solid-js";
 import { readSnapshot, writeSnapshot } from "./cache.js";
-import { parseOptions } from "./config.js";
+import { parseOptions, type NormalizedOptions } from "./config.js";
 import { BalancePanel } from "./panel.jsx";
 import {
   BalanceFetchError,
@@ -20,6 +20,41 @@ export type ProviderStatus = {
   stale: boolean;
   error: RefreshErrorState;
 };
+
+export type CommandBinding = {
+  key: string;
+  cmd: string;
+  desc: string;
+  mode: "base";
+};
+
+/**
+ * Build the keymap bindings for the plugin's commands from normalized options.
+ * null = plugin default; the literal "none" disables the binding. tui.json's
+ * host `keybinds` only accepts built-in keybind names and silently drops
+ * plugin commands, so overrides live in plugin options instead.
+ */
+export function buildCommandBindings(opts: NormalizedOptions): CommandBinding[] {
+  const bindings: CommandBinding[] = [];
+  const toggleKey = opts.keybind === null ? "<leader>shift+b" : opts.keybind;
+  if (toggleKey !== "none") {
+    bindings.push({
+      key: toggleKey,
+      cmd: TOGGLE_COMMAND,
+      desc: "Toggle balance panel",
+      mode: "base",
+    });
+  }
+  if (opts.refreshKeybind !== null && opts.refreshKeybind !== "none") {
+    bindings.push({
+      key: opts.refreshKeybind,
+      cmd: REFRESH_COMMAND,
+      desc: "Refresh balance",
+      mode: "base",
+    });
+  }
+  return bindings;
+}
 
 /**
  * Pure decision for how a refresh failure should surface in the panel.
@@ -128,16 +163,7 @@ const plugin: TuiPluginModule = {
           run: () => void refresh(),
         },
       ],
-      bindings: api.tuiConfig.keybinds.has(TOGGLE_COMMAND)
-        ? []
-        : [
-            {
-              key: "<leader>B",
-              cmd: TOGGLE_COMMAND,
-              desc: "Toggle balance panel",
-              mode: "base",
-            },
-          ],
+      bindings: buildCommandBindings(opts),
     });
     // The host also auto-tracks keymap disposers; belt-and-suspenders.
     api.lifecycle.onDispose(disposeKeymap);

@@ -6,6 +6,8 @@ export type BalancePluginOptions = {
   refreshIntervalMinutes?: number;
   fields?: "total" | "split";
   providers?: string[] | string;
+  keybind?: string;
+  refreshKeybind?: string;
 };
 
 export type NormalizedOptions = {
@@ -14,9 +16,20 @@ export type NormalizedOptions = {
   refreshIntervalMs: number;
   fields: "total" | "split";
   providers: string[];
+  keybind: string | null;
+  refreshKeybind: string | null;
 };
 
 const DEFAULT_REFRESH_INTERVAL_MINUTES = 15;
+
+/**
+ * Parse a keybind option: undefined/non-string → null; string → trimmed;
+ * trimmed-empty → null. `"none"` passes through as the literal string (the
+ * caller treats it as "binding disabled").
+ */
+function parseKeybindOption(raw: unknown): string | null {
+  return typeof raw === "string" && raw.trim() !== "" ? raw.trim() : null;
+}
 
 /**
  * Parse raw plugin options (the second tuple element in tui.json's plugin
@@ -66,6 +79,8 @@ export function parseOptions(raw: Record<string, unknown> | undefined): Normaliz
     refreshIntervalMs: Math.round(intervalMinutes * 60_000),
     fields,
     providers,
+    keybind: parseKeybindOption(raw?.keybind),
+    refreshKeybind: parseKeybindOption(raw?.refreshKeybind),
   };
 }
 
