@@ -107,6 +107,13 @@ Pass `"none"` to disable a binding (e.g. `"keybind": "none"`).
 > and `<leader>r` redoes. Check the built-in list in opencode's keybinds docs
 > before picking a binding (e.g. `f5` is unbound and works well for refresh).
 
+## Logs
+
+Refresh outcomes are logged through opencode's app log under `service:
+balance-panel` (info on success, warn/error on failures). Enable the debug
+console with a built-in keybind in `tui.json`, e.g.
+`{ "keybinds": { "app_console": "f9" } }`, then press `f9` to view.
+
 ## Disable
 
 Disable the plugin without removing it. `plugin_enabled` is keyed by the plugin

@@ -100,6 +100,14 @@ const plugin: TuiPluginModule = {
     }
     const [statuses, setStatuses] = createSignal<Record<string, ProviderStatus>>(initialStatuses);
 
+    const log = async (level: "debug" | "info" | "warn" | "error", message: string, extra: Record<string, unknown>) => {
+      try {
+        await api.client.app.log({ service: "balance-panel", level, message, extra });
+      } catch {
+        // logging must never break the refresh loop
+      }
+    };
+
     let refreshing = false;
     const refresh = async () => {
       if (refreshing) {
@@ -116,22 +124,35 @@ const plugin: TuiPluginModule = {
                 [provider.id]: { snapshot: fresh, stale: false, error: null },
               }));
               writeSnapshot(api.kv, fresh);
-            } catch (err) {
-              setStatuses((prev) => {
-                const prevStatus = prev[provider.id];
-                const { error, stale } = classifyRefreshError(
-                  err,
-                  prevStatus?.snapshot !== undefined,
-                );
-                return {
-                  ...prev,
-                  [provider.id]: {
-                    snapshot: prevStatus?.snapshot,
-                    stale,
-                    error,
-                  },
-                };
+              await log("info", "balance refreshed", {
+                provider: provider.id,
+                balances: fresh.balances.map((b) => `${b.currency}:${b.totalBalance.toFixed(2)}`),
+                fetchedAt: fresh.fetchedAt,
               });
+            } catch (err) {
+              const prevStatus = statuses()[provider.id];
+              const { error, stale } = classifyRefreshError(
+                err,
+                prevStatus?.snapshot !== undefined,
+              );
+              setStatuses((prev) => ({
+                ...prev,
+                [provider.id]: {
+                  snapshot: prevStatus?.snapshot,
+                  stale,
+                  error,
+                },
+              }));
+              const errorDetail = err instanceof Error ? err.message : String(err);
+              if (error === "key-missing") {
+                await log("warn", "API key not configured", { provider: provider.id });
+              } else if (error === "fetch-failed") {
+                await log("error", "balance unavailable", { provider: provider.id, error: errorDetail });
+              } else if (stale) {
+                await log("warn", "balance refresh failed, showing cached", { provider: provider.id, error: errorDetail });
+              } else {
+                await log("error", "unexpected refresh error", { provider: provider.id, error: errorDetail });
+              }
             }
           }),
         );
@@ -141,6 +162,7 @@ const plugin: TuiPluginModule = {
     };
 
     // Initial fetch on session start, then keep polling.
+    await log("info", "balance panel initialized", { providers: providers.map((p) => p.id) });
     void refresh();
     const timer = setInterval(() => void refresh(), opts.refreshIntervalMs);
     api.lifecycle.onDispose(() => clearInterval(timer));
