@@ -102,6 +102,53 @@ describe("DeepSeekProvider.fetchBalance", () => {
     expect((error as Error).message).not.toContain(API_KEY);
   });
 
+  test("throws BalanceFetchError with a timeout message when the request aborts", async () => {
+    process.env.DEEPSEEK_API_KEY = API_KEY;
+    globalThis.fetch = mock(() =>
+      Promise.reject(new DOMException("aborted", "AbortError")),
+    );
+
+    const error = await new DeepSeekProvider()
+      .fetchBalance()
+      .catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(BalanceFetchError);
+    expect((error as Error).message).toContain("timed out");
+    expect((error as Error).message).not.toContain(API_KEY);
+  });
+
+  test("drops currency entries whose balance numbers are non-finite", async () => {
+    process.env.DEEPSEEK_API_KEY = API_KEY;
+    globalThis.fetch = mock(async () =>
+      jsonResponse({
+        is_available: true,
+        balance_infos: [
+          {
+            currency: "CNY",
+            total_balance: "abc",
+            granted_balance: "10.00",
+            topped_up_balance: "100.00",
+          },
+          {
+            currency: "USD",
+            total_balance: "1.00",
+            granted_balance: "1.00",
+            topped_up_balance: "1.00",
+          },
+        ],
+      }),
+    );
+
+    const snapshot = await new DeepSeekProvider().fetchBalance();
+
+    expect(snapshot.balances).toHaveLength(1);
+    expect(snapshot.balances[0]).toEqual({
+      currency: "USD",
+      totalBalance: 1,
+      grantedBalance: 1,
+      toppedUpBalance: 1,
+    });
+  });
+
   test("returns an empty balances array when balance_infos is absent", async () => {
     process.env.DEEPSEEK_API_KEY = API_KEY;
     globalThis.fetch = mock(async () => jsonResponse({ is_available: true }));

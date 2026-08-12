@@ -64,8 +64,12 @@ export class DeepSeekProvider implements BalanceProvider {
           Authorization: `Bearer ${apiKey}`,
           Accept: "application/json",
         },
+        signal: AbortSignal.timeout(10_000),
       });
-    } catch {
+    } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") {
+        throw new BalanceFetchError(`${this.name}: balance request timed out`);
+      }
       throw new BalanceFetchError(`${this.name}: network error fetching balance`);
     }
 
@@ -81,12 +85,19 @@ export class DeepSeekProvider implements BalanceProvider {
     }
 
     const balances = Array.isArray(data.balance_infos)
-      ? data.balance_infos.map((info) => ({
-          currency: info.currency,
-          totalBalance: Number(info.total_balance),
-          grantedBalance: Number(info.granted_balance),
-          toppedUpBalance: Number(info.topped_up_balance),
-        }))
+      ? data.balance_infos
+          .map((info) => ({
+            currency: info.currency,
+            totalBalance: Number(info.total_balance),
+            grantedBalance: Number(info.granted_balance),
+            toppedUpBalance: Number(info.topped_up_balance),
+          }))
+          .filter(
+            (balance) =>
+              Number.isFinite(balance.totalBalance) &&
+              Number.isFinite(balance.grantedBalance) &&
+              Number.isFinite(balance.toppedUpBalance),
+          )
       : [];
 
     return {

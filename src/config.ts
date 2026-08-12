@@ -25,7 +25,7 @@ export function parseOptions(raw: Record<string, unknown> | undefined): Normaliz
   const rawInterval = raw?.refreshIntervalMinutes;
   const intervalMinutes =
     typeof rawInterval === "number" && Number.isFinite(rawInterval) && rawInterval >= 1
-      ? rawInterval
+      ? Math.min(1440, Math.round(rawInterval))
       : DEFAULT_REFRESH_INTERVAL_MINUTES;
 
   const rawThreshold = raw?.threshold;

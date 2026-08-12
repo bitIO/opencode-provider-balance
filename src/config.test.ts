@@ -49,6 +49,24 @@ describe("parseOptions", () => {
     );
   });
 
+  test("clamps oversized intervals to 24 hours (1440 minutes)", () => {
+    expect(parseOptions({ refreshIntervalMinutes: 1_000_000 }).refreshIntervalMs).toBe(
+      86_400_000,
+    );
+  });
+
+  test("rounds fractional intervals to whole minutes", () => {
+    expect(parseOptions({ refreshIntervalMinutes: 1.6 }).refreshIntervalMs).toBe(
+      120_000,
+    );
+  });
+
+  test("treats sub-minute intervals as invalid and falls back to the default", () => {
+    expect(parseOptions({ refreshIntervalMinutes: 0.5 }).refreshIntervalMs).toBe(
+      900_000,
+    );
+  });
+
   test("keeps a numeric threshold and rejects non-numeric or NaN thresholds", () => {
     expect(parseOptions({ threshold: 50 }).threshold).toBe(50);
     expect(parseOptions({ threshold: "x" }).threshold).toBeNull();
