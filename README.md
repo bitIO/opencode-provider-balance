@@ -1,5 +1,8 @@
 # opencode-provider-balance
 
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![CI](https://img.shields.io/github/actions/workflow/status/bitIO/opencode-provider-balance/ci.yml)](https://github.com/bitIO/opencode-provider-balance/actions/workflows/ci.yml)
+
 An opencode TUI plugin that shows your API-provider balance in the sidebar. It
 fetches balances on session start and re-fetches them on an interval, rendering
 a provider header (icon + name, e.g. 🐋 DeepSeek) with one line per currency
@@ -135,3 +138,6 @@ bun run build
 ```
 
 `bun run build` emits `dist/`, the npm-published artifact (`exports["./tui"]`).
+
+Contributions are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) and our
+[Code of Conduct](CODE_OF_CONDUCT.md).
