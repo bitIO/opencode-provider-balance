@@ -50,7 +50,7 @@ array:
   "plugin": [
     [
       "opencode-provider-balance",
-      { "threshold": 20, "currency": "USD", "refreshIntervalMinutes": 15, "fields": "total" }
+      { "threshold": 20, "currency": "USD", "refreshIntervalMinutes": 15, "fields": "total", "providers": ["deepseek"] }
     ]
   ]
 }
@@ -62,10 +62,14 @@ array:
 | `currency` | string, optional | none | Restrict threshold evaluation to this currency. Display is unaffected. |
 | `refreshIntervalMinutes` | number, optional | `15` (min 1) | How often to re-fetch balances. |
 | `fields` | `"total"` \| `"split"`, optional | `"total"` | Show only totals, or also granted/topped-up breakdown. |
+| `providers` | string[] or string, optional | `[]` | List of provider ids to enable (e.g. `["deepseek"]`); empty = panel hidden. |
 
 All options are optional; invalid values fall back to defaults. Threshold
 comparison is strict (`<`); omit `threshold` or set it to `null` to disable
 warnings.
+
+Only configured providers are fetched and shown; unconfigured providers
+produce no messages.
 
 ## Toggle and commands
 

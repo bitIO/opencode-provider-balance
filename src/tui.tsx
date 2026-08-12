@@ -12,9 +12,14 @@ import {
 
 const TOGGLE_COMMAND = "balance.toggle";
 const REFRESH_COMMAND = "balance.refresh";
-const SNAPSHOT_PROVIDER_ID = "deepseek";
 
 export type RefreshErrorState = "key-missing" | "fetch-failed" | null;
+
+export type ProviderStatus = {
+  snapshot?: BalanceSnapshot;
+  stale: boolean;
+  error: RefreshErrorState;
+};
 
 /**
  * Pure decision for how a refresh failure should surface in the panel.
@@ -41,14 +46,24 @@ const plugin: TuiPluginModule = {
   id: "balance.panel",
   tui: async (api, options) => {
     const opts = parseOptions(options as Record<string, unknown> | undefined);
-    const provider = getProviders()[0];
+    const providers = getProviders().filter((p) => opts.providers.includes(p.id));
+
+    // No providers configured: the plugin loads but is inert — no fetch loop,
+    // no commands, no panel slot, nothing rendered.
+    if (providers.length === 0) {
+      return;
+    }
 
     const [visible, setVisible] = createSignal(true);
-    const [snapshot, setSnapshot] = createSignal<BalanceSnapshot | undefined>(
-      readSnapshot(api.kv, SNAPSHOT_PROVIDER_ID),
-    );
-    const [stale, setStale] = createSignal(false);
-    const [error, setError] = createSignal<RefreshErrorState>(null);
+    const initialStatuses: Record<string, ProviderStatus> = {};
+    for (const provider of providers) {
+      initialStatuses[provider.id] = {
+        snapshot: readSnapshot(api.kv, provider.id),
+        stale: false,
+        error: null,
+      };
+    }
+    const [statuses, setStatuses] = createSignal<Record<string, ProviderStatus>>(initialStatuses);
 
     let refreshing = false;
     const refresh = async () => {
@@ -57,21 +72,34 @@ const plugin: TuiPluginModule = {
       }
       refreshing = true;
       try {
-        if (!provider) {
-          return;
-        }
-        const fresh = await provider.fetchBalance();
-        setSnapshot(fresh);
-        writeSnapshot(api.kv, fresh);
-        setError(null);
-        setStale(false);
-      } catch (err) {
-        const { error: nextError, stale: nextStale } = classifyRefreshError(
-          err,
-          snapshot() !== undefined,
+        await Promise.all(
+          providers.map(async (provider) => {
+            try {
+              const fresh = await provider.fetchBalance();
+              setStatuses((prev) => ({
+                ...prev,
+                [provider.id]: { snapshot: fresh, stale: false, error: null },
+              }));
+              writeSnapshot(api.kv, fresh);
+            } catch (err) {
+              setStatuses((prev) => {
+                const prevStatus = prev[provider.id];
+                const { error, stale } = classifyRefreshError(
+                  err,
+                  prevStatus?.snapshot !== undefined,
+                );
+                return {
+                  ...prev,
+                  [provider.id]: {
+                    snapshot: prevStatus?.snapshot,
+                    stale,
+                    error,
+                  },
+                };
+              });
+            }
+          }),
         );
-        setError(nextError);
-        setStale(nextStale);
       } finally {
         refreshing = false;
       }
@@ -119,13 +147,10 @@ const plugin: TuiPluginModule = {
       slots: {
         sidebar_content: (_ctx, _props) => (
           <BalancePanel
-            snapshot={snapshot()}
+            providers={providers.map((p) => ({ id: p.id, name: p.name, icon: p.icon }))}
+            statuses={statuses()}
             options={opts}
-            stale={stale()}
-            error={error()}
             visible={visible()}
-            providerName={provider?.name ?? "Unknown"}
-            providerIcon={provider?.icon ?? ""}
           />
         ),
       },

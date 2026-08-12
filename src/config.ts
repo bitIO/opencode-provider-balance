@@ -5,6 +5,7 @@ export type BalancePluginOptions = {
   currency?: string;
   refreshIntervalMinutes?: number;
   fields?: "total" | "split";
+  providers?: string[] | string;
 };
 
 export type NormalizedOptions = {
@@ -12,6 +13,7 @@ export type NormalizedOptions = {
   currency: string | null;
   refreshIntervalMs: number;
   fields: "total" | "split";
+  providers: string[];
 };
 
 const DEFAULT_REFRESH_INTERVAL_MINUTES = 15;
@@ -39,11 +41,31 @@ export function parseOptions(raw: Record<string, unknown> | undefined): Normaliz
   const rawFields = raw?.fields;
   const fields = rawFields === "split" ? "split" : "total";
 
+  // undefined/empty string → []; string → [trimmed] if non-empty else [];
+  // array → keep string items, trim, drop empties, dedupe; anything else → [].
+  const rawProviders = raw?.providers;
+  let providers: string[];
+  if (typeof rawProviders === "string") {
+    providers = rawProviders.trim() === "" ? [] : [rawProviders.trim()];
+  } else if (Array.isArray(rawProviders)) {
+    providers = [
+      ...new Set(
+        rawProviders
+          .filter((p): p is string => typeof p === "string")
+          .map((p) => p.trim())
+          .filter((p) => p !== ""),
+      ),
+    ];
+  } else {
+    providers = [];
+  }
+
   return {
     threshold,
     currency,
     refreshIntervalMs: Math.round(intervalMinutes * 60_000),
     fields,
+    providers,
   };
 }
 

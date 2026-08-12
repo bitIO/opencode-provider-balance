@@ -21,6 +21,7 @@ const DEFAULTS = {
   currency: null,
   refreshIntervalMs: 900_000,
   fields: "total" as const,
+  providers: [] as string[],
 };
 
 describe("parseOptions", () => {
@@ -77,6 +78,30 @@ describe("parseOptions", () => {
     expect(parseOptions({ fields: "split" }).fields).toBe("split");
     expect(parseOptions({ fields: "total" }).fields).toBe("total");
     expect(parseOptions({ fields: "bogus" }).fields).toBe("total");
+  });
+
+  test("defaults providers to []", () => {
+    expect(parseOptions({}).providers).toEqual([]);
+  });
+
+  test("accepts a single provider id as a string", () => {
+    expect(parseOptions({ providers: "deepseek" }).providers).toEqual(["deepseek"]);
+  });
+
+  test("treats an empty or whitespace-only provider string as []", () => {
+    expect(parseOptions({ providers: "" }).providers).toEqual([]);
+    expect(parseOptions({ providers: "   " }).providers).toEqual([]);
+  });
+
+  test("normalizes an array of provider ids: trims, drops empties, dedupes", () => {
+    expect(
+      parseOptions({ providers: [" deepseek ", "openai", "", "deepseek"] }).providers,
+    ).toEqual(["deepseek", "openai"]);
+  });
+
+  test("drops non-string array items and rejects other provider types", () => {
+    expect(parseOptions({ providers: [42, "deepseek"] }).providers).toEqual(["deepseek"]);
+    expect(parseOptions({ providers: 42 }).providers).toEqual([]);
   });
 });
 
