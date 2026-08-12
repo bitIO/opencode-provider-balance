@@ -1,5 +1,5 @@
 import type { JSX } from "@opentui/solid";
-import { For, Show, createMemo } from "solid-js";
+import { Show, createMemo } from "solid-js";
 import { isLowBalance, type NormalizedOptions } from "./config.js";
 import type { BalanceSnapshot } from "./providers.js";
 
@@ -26,6 +26,20 @@ export function BalancePanel(props: BalancePanelProps): JSX.Element {
   // isLowBalance already returns [] when options.threshold is null.
   const low = createMemo(() => isLowBalance(props.snapshot?.balances ?? [], props.options));
 
+  // One-line provider row: `🐋 DeepSeek ⚠️ USD 6.12 · CNY 88.00`. In split
+  // fields mode each segment gets a compact inline breakdown `(g 1.00 · t 5.12)`.
+  const row = createMemo(() => {
+    const balances = props.snapshot?.balances ?? [];
+    const parts = balances.map((balance) => {
+      const warning = low().some((b) => b.currency === balance.currency);
+      const total = `${warning ? "⚠️ " : ""}${balance.currency} ${balance.totalBalance.toFixed(2)}`;
+      return props.options.fields === "split"
+        ? `${total} (g ${balance.grantedBalance.toFixed(2)} · t ${balance.toppedUpBalance.toFixed(2)})`
+        : total;
+    });
+    return parts.join(" · ");
+  });
+
   return (
     <Show when={props.visible}>
       <box flexDirection="column">
@@ -36,9 +50,23 @@ export function BalancePanel(props: BalancePanelProps): JSX.Element {
           </Show>
         </box>
 
-        <text>
-          {props.providerIcon} {props.providerName}
-        </text>
+        <box flexDirection="row">
+          <text>
+            {props.providerIcon} {props.providerName}
+          </text>
+          <Show when={props.snapshot}>
+            {(snapshot) => (
+              <>
+                <Show when={snapshot().balances.length > 0}>
+                  <text> {row()}</text>
+                </Show>
+                <Show when={snapshot().balances.length === 0}>
+                  <text opacity={0.7}> no balance data</text>
+                </Show>
+              </>
+            )}
+          </Show>
+        </box>
 
         <Show when={props.error === "key-missing"}>
           <text>🔑 API key not configured</text>
@@ -49,39 +77,6 @@ export function BalancePanel(props: BalancePanelProps): JSX.Element {
           <text opacity={0.7}>
             {props.error === "fetch-failed" ? "⛔ Balance unavailable" : "Loading…"}
           </text>
-        </Show>
-
-        <Show when={props.snapshot}>
-          {(snapshot) => (
-            <>
-              <Show when={snapshot().balances.length === 0}>
-                <text opacity={0.7}>No balance data</text>
-              </Show>
-              <For each={snapshot().balances}>
-                {(balance) => {
-                  const isWarning = () => low().some((b) => b.currency === balance.currency);
-                  return (
-                    <box flexDirection="column">
-                      <box flexDirection="row">
-                        <Show when={isWarning()}>
-                          <text>⚠️ </text>
-                        </Show>
-                        <text>
-                          {balance.currency} {balance.totalBalance.toFixed(2)}
-                        </text>
-                      </box>
-                      <Show when={props.options.fields === "split"}>
-                        <box flexDirection="column" paddingLeft={2}>
-                          <text opacity={0.7}>granted {balance.grantedBalance.toFixed(2)}</text>
-                          <text opacity={0.7}>topped-up {balance.toppedUpBalance.toFixed(2)}</text>
-                        </box>
-                      </Show>
-                    </box>
-                  );
-                }}
-              </For>
-            </>
-          )}
         </Show>
       </box>
     </Show>
