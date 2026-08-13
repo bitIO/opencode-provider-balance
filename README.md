@@ -71,7 +71,7 @@ array:
 | `currency` | string, optional | none | Restrict threshold evaluation to this currency. Display is unaffected. |
 | `refreshIntervalMinutes` | number, optional | `15` (min 1) | How often to re-fetch balances. |
 | `fields` | `"total"` \| `"split"`, optional | `"total"` | Show only totals, or also granted/topped-up breakdown. |
-| `providers` | string[] or string, optional | `[]` | List of provider ids to enable (e.g. `["deepseek"]`); empty = panel hidden. |
+| `providers` | string[] or string, optional | `[]` | List of provider ids to enable (e.g. `["deepseek"]`); empty = panel hidden, but the commands stay in the palette. |
 | `keybind` | string, optional | `<leader>shift+b` | Keybind that toggles the panel; `"none"` disables it. |
 | `refreshKeybind` | string, optional | none | Keybind that refreshes balances; `"none"` disables it. |
 
@@ -91,7 +91,10 @@ produce no messages.
 - `balance.refresh` — fetch balances now. No default binding; run it from the
   command palette.
 
-Both commands appear in the command palette (`command_list`, default `ctrl+p`).
+Both commands appear in the command palette (`command_list`, default `ctrl+p`)
+**regardless of provider configuration** — even with an empty `providers`
+array (panel hidden), `balance.toggle` and `balance.refresh` are registered
+and runnable; refresh is a no-op and toggle toggles a hidden panel.
 
 Custom keybinds are set via PLUGIN OPTIONS, not `tui.json` keybinds. The host's
 `keybinds` accepts only built-in keybind names and silently ignores plugin

@@ -17,7 +17,8 @@ The panel renders on session start; if it's missing, check these in order:
     `opencode plugin @bitio/opencode-provider-balance`. See
    [Install](../README.md#install).
 3. **A provider enabled.** The default `providers` value is `[]`, which hides
-   the panel. Set `"providers": ["deepseek"]` in the plugin options.
+   the panel but keeps the commands in the palette. Set
+   `"providers": ["deepseek"]` in the plugin options to show the panel.
 4. **Logs.** Refresh outcomes are logged under `service: balance-panel` in
    opencode's app log. Enable the debug console with an `app_console` keybind
    in `tui.json` (e.g. `f9`) and open it to see errors.
@@ -64,8 +65,10 @@ See [Configuration](../README.md#configuration).
 ## Command palette missing commands
 
 `balance.toggle` and `balance.refresh` appear in the command palette
-(`command_list`, default `ctrl+p`) when the plugin is loaded. If they're
-missing, check "Panel not showing" above first.
+(`command_list`, default `ctrl+p`) whenever the plugin is loaded — including
+with an empty `providers` array (the panel is hidden, but the commands remain).
+If they're missing, the plugin isn't loaded or is disabled; check the
+"Panel not showing" steps 1–2 above.
 
 Keybinds are set via **plugin options**, not `tui.json` keybinds — the host's
 `keybinds` only accepts built-in names and silently ignores plugin commands:
