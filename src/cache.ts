@@ -4,7 +4,7 @@ import type { BalanceSnapshot } from "./providers.js";
 const KEY_PREFIX = "balance:";
 
 function snapshotKey(providerId: string): string {
-  return `${KEY_PREFIX}snapshot:${providerId}`;
+    return `${KEY_PREFIX}snapshot:${providerId}`;
 }
 
 /**
@@ -13,29 +13,35 @@ function snapshotKey(providerId: string): string {
  * state/kv.json); both are accepted. Malformed or missing values return
  * undefined.
  */
-export function readSnapshot(kv: TuiKV, providerId: string): BalanceSnapshot | undefined {
-  const raw = kv.get(snapshotKey(providerId));
-  if (typeof raw === "string") {
-    try {
-      return parseSnapshot(JSON.parse(raw));
-    } catch {
-      return undefined;
+export function readSnapshot(
+    kv: TuiKV,
+    providerId: string,
+): BalanceSnapshot | undefined {
+    const raw = kv.get(snapshotKey(providerId));
+    if (typeof raw === "string") {
+        try {
+            return parseSnapshot(JSON.parse(raw));
+        } catch {
+            return undefined;
+        }
     }
-  }
-  return parseSnapshot(raw);
+    return parseSnapshot(raw);
 }
 
 export function writeSnapshot(kv: TuiKV, snapshot: BalanceSnapshot): void {
-  kv.set(snapshotKey(snapshot.provider), snapshot);
+    kv.set(snapshotKey(snapshot.provider), snapshot);
 }
 
 function parseSnapshot(value: unknown): BalanceSnapshot | undefined {
-  if (typeof value !== "object" || value === null) {
-    return undefined;
-  }
-  const candidate = value as Partial<BalanceSnapshot>;
-  if (typeof candidate.provider !== "string" || !Array.isArray(candidate.balances)) {
-    return undefined;
-  }
-  return candidate as BalanceSnapshot;
+    if (typeof value !== "object" || value === null) {
+        return undefined;
+    }
+    const candidate = value as Partial<BalanceSnapshot>;
+    if (
+        typeof candidate.provider !== "string" ||
+        !Array.isArray(candidate.balances)
+    ) {
+        return undefined;
+    }
+    return candidate as BalanceSnapshot;
 }
