@@ -1,7 +1,8 @@
 import { describe, expect, test } from "bun:test";
+import type { TuiPluginApi } from "@opencode-ai/plugin/tui";
 import { parseOptions } from "./config.js";
 import { BalanceFetchError, BalanceKeyMissingError } from "./providers.js";
-import { buildCommandBindings, classifyRefreshError } from "./tui.js";
+import plugin, { buildCommandBindings, classifyRefreshError } from "./tui.js";
 
 describe("classifyRefreshError", () => {
     test("key-missing hides cached balances (with snapshot)", () => {
@@ -104,5 +105,53 @@ describe("buildCommandBindings", () => {
                 parseOptions({ keybind: "ctrl+b", refreshKeybind: "ctrl+r" }),
             ),
         ).toEqual([{ ...DEFAULT_TOGGLE, key: "ctrl+b" }, REFRESH]);
+    });
+});
+
+describe("empty providers", () => {
+    test("commands register but no fetch loop or panel starts", async () => {
+        let registerLayerCalls = 0;
+        let capturedLayer:
+            | { commands: { name: string }[]; bindings: unknown[] }
+            | undefined;
+        const slotRegistrations: unknown[] = [];
+
+        const apiMock = {
+            kv: {},
+            client: undefined,
+            lifecycle: { onDispose: () => {} },
+            keymap: {
+                registerLayer: (layer: {
+                    commands: { name: string }[];
+                    bindings: unknown[];
+                }) => {
+                    registerLayerCalls += 1;
+                    capturedLayer = layer;
+                    return () => {};
+                },
+            },
+            slots: {
+                register: (plugin: unknown) => {
+                    slotRegistrations.push(plugin);
+                    return "slot-id";
+                },
+            },
+        } as unknown as TuiPluginApi;
+
+        // No crash and no reject: the plugin initializes with zero providers.
+        await expect(
+            plugin.tui(apiMock, undefined, undefined as never),
+        ).resolves.toBeUndefined();
+
+        expect(registerLayerCalls).toBe(1);
+        expect(capturedLayer?.commands.map((c) => c.name)).toEqual([
+            "balance.toggle",
+            "balance.refresh",
+        ]);
+        // Default options: the single toggle binding, no refresh binding.
+        expect(capturedLayer?.bindings).toEqual(
+            buildCommandBindings(parseOptions({})),
+        );
+        expect(slotRegistrations).toHaveLength(0);
     });
 });

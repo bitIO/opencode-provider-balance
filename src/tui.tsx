@@ -89,12 +89,9 @@ const plugin: TuiPluginModule = {
             opts.providers.includes(p.id),
         );
 
-        // No providers configured: the plugin loads but is inert — no fetch loop,
-        // no commands, no panel slot, nothing rendered.
-        if (providers.length === 0) {
-            return;
-        }
-
+        // Commands and keybindings are always registered so they stay in the
+        // command palette even with no providers configured; the fetch loop and
+        // the panel slot only run when at least one provider is enabled.
         const [visible, setVisible] = createSignal(true);
         const initialStatuses: Record<string, ProviderStatus> = {};
         for (const provider of providers) {
@@ -211,13 +208,19 @@ const plugin: TuiPluginModule = {
             }
         };
 
-        // Initial fetch on session start, then keep polling.
-        await log("info", "balance panel initialized", {
-            providers: providers.map((p) => p.id),
-        });
-        void refresh();
-        const timer = setInterval(() => void refresh(), opts.refreshIntervalMs);
-        api.lifecycle.onDispose(() => clearInterval(timer));
+        // Initial fetch on session start, then keep polling. With no providers
+        // there is nothing to fetch, so skip the loop (refresh is a no-op).
+        if (providers.length > 0) {
+            await log("info", "balance panel initialized", {
+                providers: providers.map((p) => p.id),
+            });
+            void refresh();
+            const timer = setInterval(
+                () => void refresh(),
+                opts.refreshIntervalMs,
+            );
+            api.lifecycle.onDispose(() => clearInterval(timer));
+        }
 
         const disposeKeymap = api.keymap.registerLayer({
             mode: "base",
@@ -242,23 +245,25 @@ const plugin: TuiPluginModule = {
         // The host also auto-tracks keymap disposers; belt-and-suspenders.
         api.lifecycle.onDispose(disposeKeymap);
 
-        // Account-level panel: render for any session.
-        api.slots.register({
-            slots: {
-                sidebar_content: (_ctx, _props) => (
-                    <BalancePanel
-                        providers={providers.map((p) => ({
-                            id: p.id,
-                            name: p.name,
-                            icon: p.icon,
-                        }))}
-                        statuses={statuses()}
-                        options={opts}
-                        visible={visible()}
-                    />
-                ),
-            },
-        });
+        // Account-level panel: render for any session. No providers → no panel.
+        if (providers.length > 0) {
+            api.slots.register({
+                slots: {
+                    sidebar_content: (_ctx, _props) => (
+                        <BalancePanel
+                            providers={providers.map((p) => ({
+                                id: p.id,
+                                name: p.name,
+                                icon: p.icon,
+                            }))}
+                            statuses={statuses()}
+                            options={opts}
+                            visible={visible()}
+                        />
+                    ),
+                },
+            });
+        }
     },
 };
 
