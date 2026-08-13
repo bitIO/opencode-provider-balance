@@ -1,6 +1,6 @@
 {
     "name": "@bitio/opencode-provider-balance",
-    "version": "0.1.0",
+    "version": "1.0.0",
     "description": "OpenCode TUI plugin that renders a provider balance panel in the sidebar",
     "type": "module",
     "license": "MIT",
