@@ -35,7 +35,7 @@ committing.
 
 Install the local package and register it with opencode's plugin flow as
 described in the [Install](README.md#install) section of the README — e.g.
-`opencode plugin opencode-provider-balance` after publishing, or by adding the
+`opencode plugin @bitio/opencode-provider-balance` after publishing, or by adding the
 package to the `plugin` array of `tui.json`. Set `DEEPSEEK_API_KEY` to see a
 live panel.
 

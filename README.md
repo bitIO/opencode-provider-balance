@@ -1,7 +1,13 @@
 # opencode-provider-balance
 
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![CI](https://img.shields.io/github/actions/workflow/status/bitIO/opencode-provider-balance/ci.yml)](https://github.com/bitIO/opencode-provider-balance/actions/workflows/ci.yml)
+![opencode-provider-balance banner](https://raw.githubusercontent.com/bitIO/opencode-provider-balance/main/assets/banner.webp)
+
+[![npm version](https://img.shields.io/npm/v/@bitio/opencode-provider-balance?style=flat-square)](https://www.npmjs.com/package/@bitio/opencode-provider-balance)
+[![npm downloads](https://img.shields.io/npm/dm/@bitio/opencode-provider-balance?style=flat-square)](https://www.npmjs.com/package/@bitio/opencode-provider-balance)
+[![GitHub stars](https://img.shields.io/github/stars/bitIO/opencode-provider-balance?style=flat-square)](https://github.com/bitIO/opencode-provider-balance)
+[![license](https://img.shields.io/github/license/bitIO/opencode-provider-balance?style=flat-square)](LICENSE)
+
+Documentation: [docs/00-index.md](docs/00-index.md) · [Troubleshooting](docs/troubleshooting.md) · [Releasing](docs/releasing.md)
 
 An opencode TUI plugin that shows your API-provider balance in the sidebar. It
 fetches balances on session start and re-fetches them on an interval, rendering
@@ -23,14 +29,14 @@ Requires opencode with TUI plugin support (opencode >= 1.17).
 Install from npm and register it with opencode's plugin flow:
 
 ```
-opencode plugin opencode-provider-balance
+opencode plugin @bitio/opencode-provider-balance
 ```
 
 or add the package to the `plugin` array of `tui.json` (the TUI config file):
 
 ```json
 {
-  "plugin": ["opencode-provider-balance"]
+  "plugin": ["@bitio/opencode-provider-balance"]
 }
 ```
 
@@ -52,7 +58,7 @@ array:
 {
   "plugin": [
     [
-      "opencode-provider-balance",
+      "@bitio/opencode-provider-balance",
       { "threshold": 20, "currency": "USD", "refreshIntervalMinutes": 15, "fields": "total", "providers": ["deepseek"] }
     ]
   ]
@@ -95,7 +101,7 @@ commands, so overrides live in the plugin tuple:
 {
   "plugin": [
     [
-      "opencode-provider-balance",
+      "@bitio/opencode-provider-balance",
       { "keybind": "ctrl+b", "refreshKeybind": "f5" }
     ]
   ]
@@ -127,6 +133,31 @@ id (`balance.panel`), not the package name:
   "plugin_enabled": { "balance.panel": false }
 }
 ```
+
+## Troubleshooting
+
+#### The balance panel doesn't show up
+
+Check that `plugin_enabled` isn't `false` for the `balance.panel` plugin id and
+that the package is listed in the `plugin` array of `tui.json`. An empty
+`providers` option (`[]`) also hides the panel. If the config looks right, check
+opencode's logs — see [Logs](#logs) — or run `opencode --log-level debug`.
+
+#### I installed a new version but opencode still behaves like the old one
+
+opencode caches installed plugin packages. Clear its plugin cache and restart
+opencode to pick up the new version.
+
+#### The panel shows `API key not configured`
+
+The `DEEPSEEK_API_KEY` environment variable is missing or wasn't exported in the
+shell opencode was started from. Set it and restart opencode.
+
+#### The balance is stale (🕓)
+
+The API is unreachable, so the last-known cached balance is shown. Check your
+network connection and that `DEEPSEEK_API_KEY` is still valid, then run
+`balance.refresh` to fetch again.
 
 ## Development
 
