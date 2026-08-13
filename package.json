@@ -5,8 +5,23 @@
     "type": "module",
     "license": "MIT",
     "files": [
-        "dist"
+        "dist",
+        "README.md"
     ],
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/bitIO/opencode-provider-balance"
+    },
+    "keywords": [
+        "opencode",
+        "plugin",
+        "balance",
+        "provider",
+        "tui"
+    ],
+    "publishConfig": {
+        "access": "public"
+    },
     "exports": {
         "./tui": {
             "types": "./dist/tui.d.ts",
@@ -24,6 +39,8 @@
         "lint": "biome check .",
         "format": "biome format --write .",
         "lint:fix": "biome check --write .",
+        "prepack": "bun run build",
+        "release": "node node_modules/semantic-release/bin/semantic-release.js",
         "release:dry": "node node_modules/semantic-release/bin/semantic-release.js --dry-run"
     },
     "peerDependencies": {
@@ -55,6 +72,7 @@
         "@semantic-release/changelog": "^7.0.0",
         "@semantic-release/commit-analyzer": "^13.0.1",
         "@semantic-release/github": "^12.0.9",
+        "@semantic-release/npm": "^13.1.5",
         "@semantic-release/release-notes-generator": "^14.1.1",
         "@types/node": "^22.19.19",
         "husky": "^9.1.7",
