@@ -48,6 +48,26 @@ interface DeepSeekBalanceResponse {
 const DEEPSEEK_API_URL = "https://api.deepseek.com/user/balance";
 const DEEPSEEK_API_KEY_ENV = "DEEPSEEK_API_KEY";
 
+/**
+ * DeepSeek peak-pricing windows in UTC, Monday–Friday only. Ends are
+ * exclusive (`[start, end)`), so 4:00 and 10:00 are off-peak.
+ */
+const DEEPSEEK_PEAK_HOURS: ReadonlyArray<readonly [number, number]> = [
+    [1, 4],
+    [6, 10],
+];
+
+export function isDeepSeekPeakHour(date: Date = new Date()): boolean {
+    const day = date.getUTCDay();
+    if (day === 0 || day === 6) {
+        return false;
+    }
+    const hour = date.getUTCHours();
+    return DEEPSEEK_PEAK_HOURS.some(
+        ([start, end]) => hour >= start && hour < end,
+    );
+}
+
 export class DeepSeekProvider implements BalanceProvider {
     readonly id = "deepseek";
     readonly name = "DeepSeek";
