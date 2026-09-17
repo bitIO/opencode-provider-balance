@@ -8,6 +8,7 @@ import {
     BalanceKeyMissingError,
     type BalanceSnapshot,
     getProviders,
+    isDeepSeekPeakHour,
 } from "./providers.js";
 
 const TOGGLE_COMMAND = "balance.toggle";
@@ -93,6 +94,7 @@ const plugin: TuiPluginModule = {
         // command palette even with no providers configured; the fetch loop and
         // the panel slot only run when at least one provider is enabled.
         const [visible, setVisible] = createSignal(true);
+        const [now, setNow] = createSignal(new Date());
         const initialStatuses: Record<string, ProviderStatus> = {};
         for (const provider of providers) {
             initialStatuses[provider.id] = {
@@ -220,6 +222,11 @@ const plugin: TuiPluginModule = {
                 opts.refreshIntervalMs,
             );
             api.lifecycle.onDispose(() => clearInterval(timer));
+
+            // Cheap 60s tick so the peak-hour pricing emoji stays accurate
+            // between balance refreshes.
+            const clockTimer = setInterval(() => setNow(new Date()), 60_000);
+            api.lifecycle.onDispose(() => clearInterval(clockTimer));
         }
 
         const disposeKeymap = api.keymap.registerLayer({
@@ -255,6 +262,12 @@ const plugin: TuiPluginModule = {
                                 id: p.id,
                                 name: p.name,
                                 icon: p.icon,
+                                priceEmoji:
+                                    p.id === "deepseek"
+                                        ? isDeepSeekPeakHour(now())
+                                            ? "🔥"
+                                            : "❄️"
+                                        : "",
                             }))}
                             statuses={statuses()}
                             options={opts}

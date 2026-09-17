@@ -3,7 +3,12 @@ import { createMemo, For, Show } from "solid-js";
 import { isLowBalance, type NormalizedOptions } from "./config.js";
 import type { BalanceSnapshot } from "./providers.js";
 
-export type ProviderInfo = { id: string; name: string; icon: string };
+export type ProviderInfo = {
+    id: string;
+    name: string;
+    icon: string;
+    priceEmoji: string;
+};
 
 export type ProviderStatus = {
     snapshot?: BalanceSnapshot;
@@ -44,6 +49,7 @@ export function BalancePanel(props: BalancePanelProps): JSX.Element {
                 <For each={props.providers}>
                     {(provider) => {
                         const status = () => props.statuses[provider.id];
+                        const heading = `${provider.icon} ${provider.name}${provider.priceEmoji ? ` ${provider.priceEmoji}` : ""}`;
                         // isLowBalance already returns [] when options.threshold is null.
                         const low = createMemo(() =>
                             isLowBalance(
@@ -72,16 +78,12 @@ export function BalancePanel(props: BalancePanelProps): JSX.Element {
                             <Show
                                 when={status()}
                                 fallback={
-                                    <text opacity={0.7}>
-                                        {provider.icon} {provider.name} …
-                                    </text>
+                                    <text opacity={0.7}>{heading} …</text>
                                 }
                             >
                                 {(st) => (
                                     <box flexDirection="row">
-                                        <text>
-                                            {provider.icon} {provider.name}
-                                        </text>
+                                        <text>{heading}</text>
                                         <Show
                                             when={st().error !== "key-missing"}
                                         >

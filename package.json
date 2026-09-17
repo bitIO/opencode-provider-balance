@@ -61,6 +61,10 @@
             "optional": true
         }
     },
+    "overrides": {
+        "fast-uri": "3.1.6",
+        "js-yaml": "4.3.2"
+    },
     "devDependencies": {
         "@biomejs/biome": "^2.5.8",
         "@commitlint/cli": "^21.2.1",

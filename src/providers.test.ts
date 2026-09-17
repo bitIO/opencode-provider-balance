@@ -3,6 +3,7 @@ import {
     BalanceFetchError,
     BalanceKeyMissingError,
     DeepSeekProvider,
+    isDeepSeekPeakHour,
 } from "./providers.js";
 
 const API_KEY = "test-key-123";
@@ -164,5 +165,43 @@ describe("DeepSeekProvider.fetchBalance", () => {
 
         expect(snapshot.isAvailable).toBe(true);
         expect(snapshot.balances).toEqual([]);
+    });
+});
+
+describe("isDeepSeekPeakHour", () => {
+    // 2026-01-05 is a Monday, 2026-01-03 a Saturday, 2026-01-04 a Sunday.
+    const utc = (date: string, hour: number, minute = 0) =>
+        new Date(
+            `${date}T${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00Z`,
+        );
+
+    test("true inside the 01:00–04:00 weekday window", () => {
+        expect(isDeepSeekPeakHour(utc("2026-01-05", 1))).toBe(true);
+        expect(isDeepSeekPeakHour(utc("2026-01-05", 3, 59))).toBe(true);
+    });
+
+    test("false at 04:00 (window end is exclusive)", () => {
+        expect(isDeepSeekPeakHour(utc("2026-01-05", 4))).toBe(false);
+    });
+
+    test("true inside the 06:00–10:00 weekday window", () => {
+        expect(isDeepSeekPeakHour(utc("2026-01-05", 6))).toBe(true);
+        expect(isDeepSeekPeakHour(utc("2026-01-05", 9, 59))).toBe(true);
+    });
+
+    test("false at 10:00 (window end is exclusive)", () => {
+        expect(isDeepSeekPeakHour(utc("2026-01-05", 10))).toBe(false);
+    });
+
+    test("false for all other weekday hours", () => {
+        expect(isDeepSeekPeakHour(utc("2026-01-06", 0))).toBe(false);
+        expect(isDeepSeekPeakHour(utc("2026-01-06", 12))).toBe(false);
+        expect(isDeepSeekPeakHour(utc("2026-01-06", 23, 59))).toBe(false);
+    });
+
+    test("false all weekend, even inside peak-hour ranges", () => {
+        expect(isDeepSeekPeakHour(utc("2026-01-03", 2))).toBe(false);
+        expect(isDeepSeekPeakHour(utc("2026-01-04", 6))).toBe(false);
+        expect(isDeepSeekPeakHour(utc("2026-01-04", 9, 59))).toBe(false);
     });
 });
