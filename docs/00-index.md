@@ -6,6 +6,7 @@ you need. Cross-cutting guides live at the repo root (links below).
 | Doc | Purpose |
 | --- | --- |
 | [00-index.md](00-index.md) | This file: the docs map. |
+| [providers.md](providers.md) | Per-provider balance-API research: which LLM providers expose a "remaining credits" endpoint, and with what credential. Used before adding a provider. |
 | [troubleshooting.md](troubleshooting.md) | Known issues and fixes: panel not showing, stale balance, keybinds, cache. |
 | [releasing.md](releasing.md) | How releases work: Conventional Commits, the Release action, npm publishing. |
 
